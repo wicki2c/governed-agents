@@ -1,0 +1,58 @@
+# OS / Editor
+.DS_Store
+.idea/
+.vscode/
+*.swp
+*.swo
+
+# Python
+__pycache__/
+*.pyc
+*.pyo
+.venv/
+venv/
+*.egg-info/
+.pytest_cache/
+.ruff_cache/
+.mypy_cache/
+.ty_cache/
+
+# Node / JS
+node_modules/
+dist/
+build/
+*.log
+.wrangler/
+
+# Secrets — these are ALWAYS gitignored
+.env
+.env.local
+.env.*.local
+*.pem
+*.key
+.dev.vars
+
+# Claude / local state
+.claude/.cache/
+.claude/memory.json
+
+# Project runtime state (NEVER commit live SQLite or audit logs)
+infra/db.sqlite
+infra/db.sqlite-shm
+infra/db.sqlite-wal
+infra/audit.jsonl
+infra/*.log
+
+# Mutable framework-held state (e.g. rotating refresh tokens). The
+# orchestrator atomically rewrites files here; .gitkeep is the only
+# tracked file. NEVER commit anything else from this directory.
+infra/state/*
+!infra/state/.gitkeep
+
+# Per-agent workspaces — drafts are local until shipped (.gitkeep marker stays)
+agents/*/workspace/*
+!agents/*/workspace/.gitkeep
+# Per-agent memory — long-term learnings persist locally between runs.
+# The agent's smoke.sh creates this on first run; we don't commit the
+# live append history.
+agents/*/memory.md

@@ -1,0 +1,14 @@
+Governed Agents
+Copyright 2026 The Governed Agents Authors
+
+This product is licensed under the Apache License, Version 2.0 (the
+"License"); see the LICENSE file for the full text.
+
+---
+
+This distribution bundles the following third-party component:
+
+Pico.css (infra/static/pico.min.css)
+  Licensed under the MIT License.
+  Copyright (c) 2019-2024 Pico CSS and contributors.
+  https://github.com/picocss/pico

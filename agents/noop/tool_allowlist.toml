@@ -1,0 +1,28 @@
+# Per-agent tool allowlist for the noop runtime agent.
+#
+# This file is read by agents/orchestrator/runner.py to compose the
+# `claude -p --allowed-tools` argv. Default-deny: any tool not listed here
+# is rejected by the Claude Code permission system.
+#
+# The noop agent runs ONE Bash command — `bash smoke.sh` — which submits a
+# proposal (server-generated proposal_id), polls for the human decision, and
+# posts the audit chain end-to-end. Claude Code's Bash permission matches the
+# FULL command string, so multi-step bash (`PID="$(uuidgen)"; curl ...`)
+# cannot be authorised by narrow per-binary patterns. The wrapper script is
+# the cleanest minimum surface.
+
+allowed_tools = [
+    "Read(agents/noop/**)",
+    "Write(agents/noop/memory.md)",
+    "Edit(agents/noop/memory.md)",
+    "Bash(bash smoke.sh)",
+]
+
+# Per-run claude -p budget ceiling. The wrapper-script design reduces the
+# agent's tool calls to ~2 (read instructions, run script), but claude -p
+# doesn't naturally exit on task completion — the model keeps reasoning
+# until it's told to stop OR hits the cap. The actual work (submit →
+# approve → execute) completes in ~30-50k tokens; post-script
+# summarisation can push a run to 60-80k. 0.20 USD gives headroom to wrap
+# up below the cap, and the watchdog dollars_cap is the backstop.
+max_budget_usd = 0.20

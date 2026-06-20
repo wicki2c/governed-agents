@@ -1,0 +1,400 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Governed Agents — Orchestrator</title>
+  <link rel="stylesheet" href="/static/pico.min.css" />
+  <style>
+    main { padding: 1rem 2rem; max-width: 80rem; }
+    .muted { color: var(--pico-muted-color); font-size: 0.9rem; }
+    .empty { color: var(--pico-muted-color); font-style: italic; padding: 1rem 0; }
+    .pill { display: inline-block; padding: 0.1rem 0.5rem; border-radius: 0.25rem;
+            font-size: 0.8rem; background: var(--pico-secondary-background);
+            font-weight: 500; }
+    .pill-ok        { background: #d1fae5; color: #064e3b; }
+    .pill-warning   { background: #fef3c7; color: #78350f; }
+    .pill-paused    { background: #fee2e2; color: #991b1b; }
+    .pill-pending   { background: #e0e7ff; color: #312e81; }
+    .pill-approved  { background: #d1fae5; color: #064e3b; }
+    .pill-auto-approved { background: #d1fae5; color: #064e3b; }
+    .pill-rejected  { background: #fee2e2; color: #991b1b; }
+    .pill-agent { background: #ede9fe; color: #4c1d95; font-family: var(--pico-font-family-monospace); }
+    .pill-action { background: #cffafe; color: #155e75; font-family: var(--pico-font-family-monospace); }
+    .pill-event { background: #e2e8f0; color: #1e293b; font-family: var(--pico-font-family-monospace); font-size: 0.75rem; }
+    table { font-size: 0.9rem; }
+    code { font-size: 0.8rem; }
+    .grid-2 { display: grid; grid-template-columns: 1fr 1fr; gap: 1rem; }
+    button.compact { padding: 0.25rem 0.75rem; font-size: 0.85rem; }
+
+    /* Proposal cards */
+    .proposal-card {
+      border: 1px solid var(--pico-card-border-color, #ddd);
+      border-radius: 0.5rem;
+      padding: 1rem 1.25rem;
+      margin-bottom: 1rem;
+      background: var(--pico-card-background-color, #fafafa);
+    }
+    .proposal-card[data-action-type="purchase"],
+    .proposal-card[data-action-type="modify_credentials"],
+    .proposal-card[data-action-type="charge_card"] {
+      border-color: #f59e0b;
+      background: #fffbeb;
+    }
+    .proposal-head {
+      display: flex; flex-wrap: wrap; gap: 0.4rem 0.6rem;
+      align-items: baseline; margin-bottom: 0.5rem;
+    }
+    .proposal-meta {
+      color: var(--pico-muted-color); font-size: 0.85rem;
+      margin-bottom: 0.75rem;
+      font-family: var(--pico-font-family-monospace);
+    }
+    .proposal-body { display: grid; gap: 0.75rem; }
+    .field { margin: 0; }
+    .field-label {
+      font-size: 0.75rem; text-transform: uppercase; letter-spacing: 0.04em;
+      color: var(--pico-muted-color); margin-bottom: 0.15rem;
+    }
+    .field-value { line-height: 1.4; }
+    .payload-grid { display: grid; grid-template-columns: max-content 1fr; gap: 0.25rem 0.75rem; }
+    .payload-key { font-family: var(--pico-font-family-monospace); font-size: 0.8rem; color: #1e293b; }
+    .payload-val { font-size: 0.9rem; word-break: break-word; }
+    .payload-val.long {
+      white-space: pre-wrap; font-size: 0.8rem;
+      background: var(--pico-code-background-color, #f3f4f6);
+      padding: 0.25rem 0.5rem; border-radius: 0.25rem;
+    }
+    .urlchip {
+      display: inline-block; margin-right: 0.4rem;
+      padding: 0.05rem 0.4rem; border-radius: 0.25rem;
+      background: var(--pico-code-background-color, #f3f4f6);
+      font-size: 0.8rem;
+    }
+    .decision-row { display: flex; gap: 0.5rem; margin-top: 0.5rem; align-items: center; }
+    .decision-row input[type=text] { flex: 1; margin: 0; }
+
+    /* Audit log */
+    .audit-table td { vertical-align: top; padding: 0.4rem 0.5rem; }
+    .audit-row.warn { background: #fffbeb; }
+    .audit-row.err  { background: #fef2f2; }
+    .audit-row.ok   { /* default */ }
+    details.raw-payload {
+      margin: 0; font-size: 0.75rem;
+    }
+    details.raw-payload summary {
+      cursor: pointer; color: var(--pico-muted-color); font-size: 0.75rem;
+      list-style: none;
+    }
+    details.raw-payload summary::before { content: "▸ raw"; }
+    details.raw-payload[open] summary::before { content: "▾ raw"; }
+    details.raw-payload pre {
+      margin: 0.25rem 0 0 0; padding: 0.25rem 0.5rem;
+      background: var(--pico-code-background-color, #f3f4f6);
+      border-radius: 0.25rem; white-space: pre-wrap; font-size: 0.7rem;
+    }
+    .audit-summary { color: #1e293b; }
+    .audit-time { font-family: var(--pico-font-family-monospace); font-size: 0.8rem; color: var(--pico-muted-color); }
+  </style>
+</head>
+<body>
+  <main class="container">
+    <header>
+      <h1>Governed Agents — Orchestrator</h1>
+      <p class="muted">
+        Localhost-only dashboard. No auth. Bound to 127.0.0.1 only — do not expose to a network.
+        Last refresh: <span id="last-refresh">never</span>.
+      </p>
+    </header>
+
+    <section>
+      <h2>Pending proposals</h2>
+      <div id="proposals-section"><p class="empty">Loading…</p></div>
+    </section>
+
+    <div class="grid-2">
+      <section>
+        <h2>Scoreboard</h2>
+        <div id="scoreboard-section"><p class="empty">Loading…</p></div>
+      </section>
+      <section>
+        <h2>Status</h2>
+        <div id="status-section"><p class="empty">Loading…</p></div>
+      </section>
+    </div>
+
+    <section>
+      <h2>Audit log (last 50)</h2>
+      <div id="audit-section"><p class="empty">Loading…</p></div>
+    </section>
+
+    <footer class="muted">
+      <p>
+        Proposal cards surface the full payload + rationale so approvals are
+        informed; the audit log is summarised with the raw JSON behind a
+        click-to-expand.
+      </p>
+    </footer>
+  </main>
+
+  <script>
+    const esc = (s) => String(s ?? "").replace(/[&<>"']/g, (c) => ({
+      "&":"&amp;","<":"&lt;",">":"&gt;","\"":"&quot;","'":"&#39;"
+    }[c]));
+    const pill = (s, cls) => `<span class="pill pill-${esc(cls ?? s)}">${esc(s)}</span>`;
+
+    const URL_RE = /^https?:\/\//i;
+
+    const fmtTime = (iso) => {
+      if (!iso) return "";
+      // Strip fractional seconds and timezone offset for display compactness.
+      const m = String(iso).match(/^(\d{4}-\d{2}-\d{2})[T ](\d{2}:\d{2}:\d{2})/);
+      return m ? `${m[1]} ${m[2]}` : iso;
+    };
+    const fmtTimeShort = (iso) => {
+      const m = String(iso || "").match(/T(\d{2}:\d{2}:\d{2})/);
+      return m ? m[1] : (iso || "").slice(0, 19);
+    };
+    const fmtRelExpires = (iso) => {
+      if (!iso) return "";
+      const t = Date.parse(iso);
+      if (isNaN(t)) return iso;
+      const diff = t - Date.now();
+      if (diff < 0) return "expired";
+      const hrs = diff / 3600000;
+      if (hrs < 1) return `${Math.round(diff / 60000)} min`;
+      if (hrs < 48) return `${Math.round(hrs)} h`;
+      return `${Math.round(hrs / 24)} d`;
+    };
+
+    async function fetchJson(path) {
+      const r = await fetch(path);
+      if (!r.ok) throw new Error(`${path} → ${r.status}`);
+      return r.json();
+    }
+
+    // ----- Payload rendering ------------------------------------------------
+    function renderUrlchip(u) {
+      const safe = esc(u);
+      return `<a class="urlchip" href="${safe}" target="_blank" rel="noopener noreferrer">${safe}</a>`;
+    }
+    function renderPayloadValue(v) {
+      if (v == null) return `<span class="muted">—</span>`;
+      if (typeof v === "string") {
+        if (URL_RE.test(v)) return renderUrlchip(v);
+        if (v.length > 120) return `<div class="payload-val long">${esc(v)}</div>`;
+        return esc(v);
+      }
+      if (typeof v === "boolean" || typeof v === "number") return esc(String(v));
+      if (Array.isArray(v)) {
+        if (v.every(x => typeof x === "string" && URL_RE.test(x))) {
+          return v.map(renderUrlchip).join("");
+        }
+        return `<div class="payload-val long">${esc(JSON.stringify(v, null, 2))}</div>`;
+      }
+      // object
+      return `<div class="payload-val long">${esc(JSON.stringify(v, null, 2))}</div>`;
+    }
+    function renderPayload(payload) {
+      if (!payload || typeof payload !== "object") return "";
+      const entries = Object.entries(payload);
+      if (!entries.length) return `<span class="muted">empty</span>`;
+      return `<div class="payload-grid">${entries.map(([k, v]) => `
+        <div class="payload-key">${esc(k)}</div>
+        <div class="payload-val">${renderPayloadValue(v)}</div>
+      `).join("")}</div>`;
+    }
+
+    // ----- Proposals --------------------------------------------------------
+    function renderProposalCard(p) {
+      const links = (p.links || []).filter(Boolean);
+      const linksHtml = links.length
+        ? links.map(renderUrlchip).join("")
+        : `<span class="muted">—</span>`;
+      const expiresIn = fmtRelExpires(p.expires_at);
+      const idShort = (p.proposal_id || "").slice(0, 8);
+      return `<div class="proposal-card" data-action-type="${esc(p.action_type)}" id="proposal-${esc(p.proposal_id)}">
+        <div class="proposal-head">
+          ${pill(p.agent_id, "agent")}
+          ${pill(p.action_type, "action")}
+          ${pill(p.status)}
+          <span class="muted">wave ${esc(p.wave)} · ${p.reversible ? "reversible" : "<strong>IRREVERSIBLE</strong>"}</span>
+        </div>
+        <div class="proposal-meta">
+          id <code>${esc(idShort)}…</code> · submitted ${esc(fmtTime(p.submitted_at))} · expires in ${esc(expiresIn)}
+        </div>
+        <div class="proposal-body">
+          ${p.expected_outcome ? `<div class="field">
+            <div class="field-label">Expected outcome</div>
+            <div class="field-value">${esc(p.expected_outcome)}</div>
+          </div>` : ""}
+          ${p.rationale ? `<div class="field">
+            <div class="field-label">Rationale</div>
+            <div class="field-value">${esc(p.rationale)}</div>
+          </div>` : ""}
+          <div class="field">
+            <div class="field-label">Payload</div>
+            <div class="field-value">${renderPayload(p.payload)}</div>
+          </div>
+          <div class="field">
+            <div class="field-label">Cost estimate</div>
+            <div class="field-value">
+              ${(p.expected_cost_tokens ?? 0).toLocaleString()} tokens ·
+              $${(p.expected_cost_dollars ?? 0).toFixed(4)}
+            </div>
+          </div>
+          ${links.length ? `<div class="field">
+            <div class="field-label">Links</div>
+            <div class="field-value">${linksHtml}</div>
+          </div>` : ""}
+          <div class="decision-row">
+            <input type="text" id="note-${esc(p.proposal_id)}" placeholder="Optional note (logged with the decision)" />
+            <button class="compact" onclick="decide('${esc(p.proposal_id)}','approve')">Approve</button>
+            <button class="compact secondary" onclick="decide('${esc(p.proposal_id)}','reject')">Reject</button>
+          </div>
+        </div>
+      </div>`;
+    }
+    function renderProposals(rows) {
+      if (!rows.length) return `<p class="empty">No pending proposals.</p>`;
+      return rows.map(renderProposalCard).join("");
+    }
+
+    // ----- Scoreboard / Status (unchanged shape) ---------------------------
+    function renderScoreboard(rows) {
+      if (!rows.length) return `<p class="empty">No agents registered.</p>`;
+      return `<table><thead><tr>
+        <th>Agent</th><th>Status</th><th>Submitted</th><th>Approved</th>
+        <th>Rejected</th><th>Tokens</th><th>$ spent</th>
+      </tr></thead><tbody>${rows.map(r => `<tr>
+        <td>${esc(r.agent_id)}</td>
+        <td>${pill(r.status)}</td>
+        <td>${r.proposals_submitted}</td>
+        <td>${r.proposals_approved}</td>
+        <td>${r.proposals_rejected}</td>
+        <td>${r.tokens_consumed.toLocaleString()}</td>
+        <td>$${r.dollars_consumed.toFixed(4)}</td>
+      </tr>`).join("")}</tbody></table>`;
+    }
+
+    function renderStatus(s) {
+      const paused = (s.agents_paused || []).join(", ") || "—";
+      return `<dl>
+        <dt>OK</dt><dd>${pill(s.ok ? "ok" : "paused")}</dd>
+        <dt>Host</dt><dd><code>${esc(s.host)}:${s.port}</code></dd>
+        <dt>DB</dt><dd>${pill(s.db_ok ? "ok" : "paused")}</dd>
+        <dt>audit.jsonl</dt><dd>${pill(s.audit_jsonl_ok ? "ok" : "paused")}</dd>
+        <dt>Started</dt><dd>${esc(fmtTime(s.started_at))}</dd>
+        <dt>Paused</dt><dd>${esc(paused)}</dd>
+      </dl>`;
+    }
+
+    // ----- Audit log: per-event-type human summary -------------------------
+    function auditSummary(r) {
+      const p = r.payload || {};
+      const tk = (n) => (n ?? 0).toLocaleString();
+      const d4 = (n) => Number(n ?? 0).toFixed(4);
+      const d2 = (n) => Number(n ?? 0).toFixed(2);
+      switch (r.event_type) {
+        case "proposal_submitted":
+          return `Submitted <code>${esc(p.action_type ?? "?")}</code> proposal · status <code>${esc(p.status ?? "?")}</code> · wave ${esc(p.wave ?? "?")}`;
+        case "proposal_decided":
+          return `Decision: <strong>${esc(p.decision ?? "?")}</strong>${p.final ? " (final)" : ""}${p.note ? " — " + esc(p.note) : ""}`;
+        case "action_executed":
+          return `Executed: <code>${esc(p.action ?? p.action_type ?? "?")}</code>` +
+                 (p.slug ? ` · slug <code>${esc(p.slug)}</code>` : "") +
+                 (p.workspace_path ? ` · path <code>${esc(p.workspace_path)}</code>` : "");
+        case "agent_stop":
+          return `Stopped: <code>${esc(p.reason ?? "?")}</code>`;
+        case "budget_charge":
+          return `${tk(p.tokens)} tokens · $${d4(p.dollars)} · <code>${esc(p.tool ?? "?")}</code>`;
+        case "budget_charge_unknown_usage":
+          return `No usage event in stream (subtype <code>${esc(p.subtype ?? "?")}</code>) — charged $0`;
+        case "budget_paused":
+          return `⚠ <strong>Agent paused</strong>: ${tk(p.tokens_consumed)} tokens / $${d2(p.dollars_consumed)} ` +
+                 `(caps: ${tk(p.tokens_cap)} tok / $${d2(p.dollars_cap)})`;
+        case "agent_run_complete": {
+          const denials = (p.permission_denials || []).length;
+          return `Run complete · reason <code>${esc(p.reason ?? "?")}</code>` +
+                 (denials ? ` · <span style="color:#b45309">${denials} permission denial${denials === 1 ? "" : "s"}</span>` : "");
+        }
+        case "agent_run_failed":
+          return `Run failed · reason <code>${esc(p.reason ?? "?")}</code>` +
+                 (p.subtype ? ` · subtype <code>${esc(p.subtype)}</code>` : "");
+        case "agent_run_skipped":
+          return `Skipped: ${esc(p.reason ?? "?")}` +
+                 (p.paused_reason ? ` (paused: ${esc(p.paused_reason)})` : "");
+        case "audit_flag_self_approve_attempt":
+          return `⚠ Self-approve attempt: <code>${esc(p.action_type ?? "?")}</code> — ${esc(p.reason ?? "")}`;
+        case "audit_flag_decision_hook_error":
+          return `⚠ Decision hook error (<code>${esc(p.action_type ?? "?")}</code>): ${esc(p.error ?? "?")}`;
+        case "credentials_issued":
+          return `Credential issued · scope <code>${esc(p.scope ?? "?")}</code>`;
+        case "credentials_redeemed":
+          return `Credential redeemed · scope <code>${esc(p.scope ?? "?")}</code>`;
+        default:
+          return `<span class="muted">${esc(r.event_type)}</span>`;
+      }
+    }
+    function auditRowClass(r) {
+      const et = r.event_type;
+      if (et.startsWith("audit_flag_") || et === "budget_paused" || et === "agent_run_failed") return "warn";
+      return "ok";
+    }
+    function renderAudit(rows) {
+      if (!rows.length) return `<p class="empty">Audit log empty.</p>`;
+      return `<table class="audit-table"><thead><tr>
+        <th>Time</th><th>Agent</th><th>Event</th><th>Summary</th><th>Detail</th>
+      </tr></thead><tbody>${rows.map(r => `
+        <tr class="audit-row ${auditRowClass(r)}">
+          <td class="audit-time">${esc(fmtTimeShort(r.ts))}</td>
+          <td>${r.agent_id ? pill(r.agent_id, "agent") : ""}</td>
+          <td>${pill(r.event_type, "event")}</td>
+          <td class="audit-summary">${auditSummary(r)}</td>
+          <td>
+            <details class="raw-payload">
+              <summary></summary>
+              <pre>${esc(JSON.stringify(r.payload || {}, null, 2))}</pre>
+            </details>
+          </td>
+        </tr>`).join("")}</tbody></table>`;
+    }
+
+    // ----- Decision + refresh ---------------------------------------------
+    async function decide(id, decision) {
+      const noteInput = document.getElementById(`note-${id}`);
+      const note = noteInput ? noteInput.value.trim() : "";
+      const body = { decision, final: false };
+      if (note) body.note = note;
+      const r = await fetch(`/proposals/${encodeURIComponent(id)}/decision`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(body)
+      });
+      if (!r.ok) alert(`Decision failed: ${r.status} — ${await r.text()}`);
+      refresh();
+    }
+
+    async function refresh() {
+      try {
+        const [proposals, scoreboard, statusInfo, audit] = await Promise.all([
+          fetchJson("/proposals?status=pending"),
+          fetchJson("/scoreboard"),
+          fetchJson("/status"),
+          fetchJson("/audit?limit=50"),
+        ]);
+        document.getElementById("proposals-section").innerHTML = renderProposals(proposals);
+        document.getElementById("scoreboard-section").innerHTML = renderScoreboard(scoreboard);
+        document.getElementById("status-section").innerHTML = renderStatus(statusInfo);
+        document.getElementById("audit-section").innerHTML = renderAudit(audit);
+        document.getElementById("last-refresh").textContent = new Date().toLocaleTimeString();
+      } catch (err) {
+        console.error(err);
+      }
+    }
+
+    refresh();
+    setInterval(refresh, 5000);
+  </script>
+</body>
+</html>

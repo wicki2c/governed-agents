@@ -1,0 +1,48 @@
+# Proposal auto-approve policy — the heart of the proposal-gate.
+#
+# Read once at FastAPI app startup and cached in memory. Restart the
+# orchestrator to reload; hot-reload is deliberately not supported, so the
+# policy an agent is judged against can't shift mid-run.
+#
+# Server-side enforcement (infra/app.py:submit_proposal):
+#   - action_type on `never_auto_approve` + requires_approval=false        → 400 + audit_flag
+#   - action_type on `auto_approve` + requires_approval=false + reversible  → status=auto-approved
+#   - any proposal with reversible=false                                    → coerced to requires_approval=true
+#   - everything else                                                       → status=pending (awaits a human)
+#
+# This file is owned by the framework. Agents must never modify it — that
+# is one of the non-negotiables the design enforces.
+#
+# The action_types below are a generic, illustrative starter set. Replace
+# them with the actions your own agents actually take; keep anything
+# external-facing, irreversible, or money-spending on `never_auto_approve`.
+
+[auto_approve]
+# Reversible, side-effect-free actions an agent may self-approve (it must
+# still send reversible=true + requires_approval=false to actually skip the
+# human gate).
+action_types = [
+    "research_only",      # fetch / read external sources, no writes
+    "internal_file_op",   # write inside the agent's own workspace/
+    "draft_content",      # produce a draft, not publish it
+]
+
+[never_auto_approve]
+# External-facing, irreversible, or money-spending actions. These ALWAYS
+# require a human decision on the dashboard, regardless of what the agent
+# submits. Setting requires_approval=false on one of these is rejected with
+# HTTP 400 and recorded as an audit_flag_self_approve_attempt event.
+action_types = [
+    "publish_content",     # make something publicly visible
+    "external_api_write",  # any state-changing call to a third-party API
+    "send_email",          # outbound message to a person
+    "charge_card",         # spend real money
+    "deploy_service",      # provision or update a live deployment
+    "purchase",            # buy a domain / good / subscription
+    "modify_credentials",  # rotate or change a secret
+    "spawn_subagent",      # widen the agent topology
+]
+
+[defaults]
+# Action types on neither list above default to requiring human approval.
+requires_approval = true
