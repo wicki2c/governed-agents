@@ -28,6 +28,13 @@ jobs:
         run: uv run ruff format --check .
       - name: Tests
         run: uv run pytest -q
+      - name: Audit dependencies (pip-audit)
+        # A governance/security harness should scan its own dependency tree.
+        # Audits the full locked set (incl. dev deps) against the advisory DB;
+        # a known CVE fails the build.
+        run: |
+          uv export --format requirements-txt --no-emit-project -o "$RUNNER_TEMP/reqs.txt"
+          uvx pip-audit -r "$RUNNER_TEMP/reqs.txt"
 
   secret-scan:
     runs-on: ubuntu-latest
