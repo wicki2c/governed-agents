@@ -56,3 +56,9 @@ agents/*/workspace/*
 # The agent's smoke.sh creates this on first run; we don't commit the
 # live append history.
 agents/*/memory.md
+
+# Coverage artifacts (pytest-cov) — data + reports, never committed
+.coverage
+.coverage.*
+coverage.xml
+htmlcov/
