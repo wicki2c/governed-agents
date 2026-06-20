@@ -18,6 +18,10 @@ dev = [
     "pytest>=9.0.3,<10",
     "pytest-asyncio>=1.0,<2",
     "pytest-cov>=6,<8",
+    # Starlette's TestClient (used via fastapi.testclient) prefers the httpx2
+    # backend and warns when only plain httpx is present. Test-only: runtime
+    # HTTP in agents/orchestrator/runner.py still uses stable httpx.
+    "httpx2>=2.4,<3",
     "ruff>=0.6,<1",
 ]
 
