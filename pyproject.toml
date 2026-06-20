@@ -17,6 +17,7 @@ dependencies = [
 dev = [
     "pytest>=9.0.3,<10",
     "pytest-asyncio>=1.0,<2",
+    "pytest-cov>=6,<8",
     "ruff>=0.6,<1",
 ]
 
@@ -32,3 +33,15 @@ select = ["E", "F", "I", "B", "UP", "RUF"]
 testpaths = ["tests"]
 addopts = "-ra"
 asyncio_mode = "auto"
+
+# Coverage is opt-in via `--cov` (CI passes it) so local subset runs aren't
+# penalised by the threshold. branch=true makes the gate stricter than plain
+# statement coverage; fail_under locks in the current 83% baseline (raise it
+# as coverage improves — never silently lower it).
+[tool.coverage.run]
+source = ["infra", "agents"]
+branch = true
+
+[tool.coverage.report]
+show_missing = true
+fail_under = 83
