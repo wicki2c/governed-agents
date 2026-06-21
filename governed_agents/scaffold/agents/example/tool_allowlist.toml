@@ -1,0 +1,20 @@
+# Per-agent tool allowlist for the `example` runtime agent.
+#
+# Read by agents/orchestrator/runner.py to compose the
+# `claude -p --allowed-tools` argv. DEFAULT-DENY: any tool not listed here
+# is rejected by the Claude Code permission system. Add capabilities
+# deliberately, one at a time, scoped as narrowly as possible.
+#
+# Claude Code's Bash permission matches the FULL command string, so prefer a
+# single wrapper script (`Bash(bash run.sh)`) over many per-binary patterns.
+
+allowed_tools = [
+    "Read(agents/example/**)",
+    # "Write(agents/example/memory.md)",
+    # "Edit(agents/example/memory.md)",
+    # "Bash(bash run.sh)",
+]
+
+# Per-run claude -p budget ceiling, in USD. The watchdog dollars_cap is the
+# backstop; keep this conservative.
+max_budget_usd = 0.20
