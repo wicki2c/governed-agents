@@ -1,0 +1,20 @@
+# Per-agent tool allowlist for the publisher example agent.
+#
+# Read by agents/orchestrator/runner.py to compose the
+# `claude -p --allowed-tools` argv. Default-deny: any tool not listed here
+# is rejected by the Claude Code permission system.
+#
+# Like noop, the workflow is collapsed into a single wrapper script so one
+# `Bash(bash publish.sh)` entry authorises the whole submit -> poll ->
+# record flow (Bash permission matches the FULL command string).
+
+allowed_tools = [
+    "Read(agents/publisher/**)",
+    "Write(agents/publisher/memory.md)",
+    "Edit(agents/publisher/memory.md)",
+    "Bash(bash publish.sh)",
+]
+
+# Per-run claude -p budget ceiling, in USD. The runner records spend (not
+# the agent); the watchdog dollars_cap is the hard backstop.
+max_budget_usd = 0.20
