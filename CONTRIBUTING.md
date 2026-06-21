@@ -48,7 +48,8 @@ Run `uv run ruff format .` before committing; `verify.sh` checks formatting.
 1. Branch from `main`.
 2. Keep the change focused — one concern per PR.
 3. Add or update tests. `uv run pytest -q` must be green.
-4. Update docs in the same PR when behavior changes.
+4. Update docs in the same PR when behavior changes — and add a line to
+   `CHANGELOG.md` under `## [Unreleased]` for any user-visible change.
 5. Sign off your commits (DCO).
 
 ## Scope
