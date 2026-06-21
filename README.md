@@ -63,33 +63,95 @@ write their own budget charges.
 
 ## Quickstart
 
-Requires Python 3.12+ and [uv](https://docs.astral.sh/uv/).
+Requires Python 3.12+.
 
 ```bash
-# 1. Install deps into a local venv
-uv sync
-
-# 2. Start the orchestrator (binds 127.0.0.1:8005) and the watchdog
-./scripts/start_orchestrator.sh   # in one terminal
-./scripts/start_watchdog.sh       # in another
-
-# 3. Run the zero-LLM demo (no Anthropic key required)
-./scripts/demo.sh
+pip install governed-agents
 ```
 
-The demo submits a proposal for an external action, then waits for you to
-**approve or reject it** at <http://127.0.0.1:8005>. When you decide, it
-prints the resulting audit chain. That's the whole governance loop, with no
-model in the way.
+> **Until the first PyPI release**, install straight from the repo — same
+> `governed-agents` CLI, same UX:
+>
+> ```bash
+> pip install git+https://github.com/wicki2c/governed-agents
+> # or, from a clone:  pip install .
+> ```
+>
+> Prefer [uv](https://docs.astral.sh/uv/)? `uv pip install governed-agents`
+> drops it into the current environment, or `uv add governed-agents` adds it
+> to a project.
 
-To run a real agent (needs Claude Code / a `claude` binary on PATH):
+Installing puts a single `governed-agents` command on your `PATH`. The fastest
+way to see what the harness does is the zero-LLM demo — **no Anthropic key, no
+server, no setup**:
 
 ```bash
-./scripts/run_agent.sh noop
+governed-agents demo
 ```
 
-`noop` is a bundled smoke agent that exercises the full
-proposal → approve → execute → audit loop.
+It submits a proposal for an external action, shows the gate **block** it,
+approves it, executes it, and prints the resulting audit chain — the whole
+governance loop, deterministic and in-memory, with no model in the way.
+
+### Run the live loop
+
+To approve a proposal yourself in the browser, start the orchestrator and the
+watchdog in two terminals, then run an agent:
+
+```bash
+# Terminal 1 — orchestrator (binds 127.0.0.1 only; never networked):
+governed-agents serve
+
+# Terminal 2 — independent watchdog:
+governed-agents watchdog
+
+# Terminal 3 — run the bundled noop smoke agent:
+governed-agents run noop
+```
+
+`serve` opens the localhost dashboard at <http://127.0.0.1:8005> where you
+approve or reject the proposal; when you decide, the agent finishes and the run
+is recorded. `noop` is a bundled zero-cost smoke agent that exercises the full
+proposal → approve → execute → audit loop. Running a *real* agent needs a
+`claude` binary on your `PATH`.
+
+Two read-only commands report live state from a running orchestrator:
+
+```bash
+governed-agents status       # orchestrator health + live counts
+governed-agents scoreboard   # per-agent spend, runs, and pauses
+```
+
+### Scaffold your own project
+
+```bash
+governed-agents init my-project
+```
+
+`init` writes a fresh project tree (agents, allowlists, tasks, config) and is
+**no-clobber** — if anything it would write already exists, it lists the
+collisions and refuses to touch your files.
+
+For the full command and flag reference, see **[docs/CLI.md](docs/CLI.md)**.
+
+### From source (for contributors)
+
+To hack on the harness itself, work from a checkout with
+[uv](https://docs.astral.sh/uv/):
+
+```bash
+git clone https://github.com/wicki2c/governed-agents
+cd governed-agents
+uv sync                          # install deps into a local venv
+
+# Run the same CLI without installing — just prefix with `uv run`:
+uv run governed-agents demo
+uv run governed-agents serve     # binds 127.0.0.1 only
+```
+
+The bundled `./scripts/*.sh` wrappers (`demo.sh`, `start_orchestrator.sh`,
+`start_watchdog.sh`, `run_agent.sh`) are still there and wrap the same
+entrypoints.
 
 ## Writing your own agent
 
