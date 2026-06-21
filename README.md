@@ -103,9 +103,6 @@ proposal → approve → execute → audit loop.
    `decision_hooks.register(action_type, handler)` — see
    `infra/decision_hooks.py`.
 
-For step-by-step worked examples — the zero-LLM demo loop, a custom agent,
-and a decision hook end-to-end — see **[docs/USAGE.md](docs/USAGE.md)**.
-
 ## Verify
 
 ```bash
