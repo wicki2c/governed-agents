@@ -46,3 +46,41 @@ jobs:
         uses: gitleaks/gitleaks-action@v3
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+
+  # Proves the wheel is real and installable end-to-end: build, twine-check,
+  # then install the BUILT WHEEL into a clean, project-free venv and exercise
+  # the console entry point plus the __file__-resolved runtime data files
+  # (without them `serve` 500s at runtime and `--help` alone won't catch it).
+  package:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v7
+      - name: Install uv
+        uses: astral-sh/setup-uv@v7
+        with:
+          python-version: "3.12"
+      - name: Build wheel + sdist
+        run: uv build
+      - name: twine check (wheel + sdist metadata)
+        run: uvx twine check dist/*
+      - name: Install built wheel into a clean, project-free venv
+        # A fresh venv outside the source tree so we exercise the INSTALLED
+        # package, not the repo. `uv venv` ships no pip, so install with uv's
+        # own installer (`uv pip install --python`) rather than `pip`.
+        run: |
+          uv venv "$RUNNER_TEMP/wheelenv" --python 3.12
+          uv pip install --python "$RUNNER_TEMP/wheelenv" dist/*.whl
+      - name: Exercise the console entry point
+        # Run from $RUNNER_TEMP (not the repo root) so a stray repo on the path
+        # can't mask a broken wheel. Assert exit 0 and that the subcommands list.
+        working-directory: ${{ runner.temp }}
+        run: |
+          "$RUNNER_TEMP/wheelenv/bin/governed-agents" --help
+          "$RUNNER_TEMP/wheelenv/bin/governed-agents" --help | grep -q 'serve'
+          "$RUNNER_TEMP/wheelenv/bin/governed-agents" --help | grep -q 'demo'
+      - name: Assert runtime data files shipped in the wheel
+        # serve() resolves these via infra.__file__; if they didn't ship, the
+        # installed package imports fine but 500s at request time.
+        working-directory: ${{ runner.temp }}
+        run: |
+          "$RUNNER_TEMP/wheelenv/bin/python" -c "import infra, pathlib; p=pathlib.Path(infra.__file__).parent; assert (p/'dashboard.html').exists() and (p/'proposal_policy.toml').exists() and (p/'static'/'pico.min.css').exists(); print('data files present')"
