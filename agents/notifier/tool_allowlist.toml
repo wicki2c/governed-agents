@@ -1,0 +1,20 @@
+# Per-agent tool allowlist for the notifier example agent.
+#
+# Read by agents/orchestrator/runner.py to compose the
+# `claude -p --allowed-tools` argv. Default-deny: any tool not listed here
+# is rejected by the Claude Code permission system.
+#
+# Like noop and publisher, the workflow is collapsed into a single wrapper
+# script so one `Bash(bash notify.sh)` entry authorises the whole submit ->
+# poll -> record flow (Bash permission matches the FULL command string).
+
+allowed_tools = [
+    "Read(agents/notifier/**)",
+    "Write(agents/notifier/memory.md)",
+    "Edit(agents/notifier/memory.md)",
+    "Bash(bash notify.sh)",
+]
+
+# Per-run claude -p budget ceiling, in USD. The runner records spend (not
+# the agent); the watchdog dollars_cap is the hard backstop.
+max_budget_usd = 0.20
