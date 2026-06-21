@@ -1,0 +1,15 @@
+# CODEOWNERS — governed-agents
+# Governance core, gate scripts, and release-trust surfaces hold for owner
+# review. Paths NOT listed self-merge on green (docs, tests, example agents,
+# dependency bumps).
+
+/infra/                  @wicki2c
+/agents/orchestrator/    @wicki2c
+/scripts/                @wicki2c
+/.github/                @wicki2c
+/CLAUDE.md               @wicki2c
+/README.md               @wicki2c
+/LICENSE                 @wicki2c
+/NOTICE                  @wicki2c
+/SECURITY.md             @wicki2c
+/CODE_OF_CONDUCT.md      @wicki2c
