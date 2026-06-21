@@ -3,6 +3,15 @@
 Thanks for your interest! This is an early project and contributions are
 welcome — bug reports, docs, tests, and focused features alike.
 
+## Good first issues
+
+New here? Start with an issue labeled
+[`good first issue`](https://github.com/wicki2c/governed-agents/issues?q=is%3Aopen+is%3Aissue+label%3A%22good+first+issue%22)
+— these are scoped, self-contained, and a maintainer has already sketched the
+approach. [`help wanted`](https://github.com/wicki2c/governed-agents/issues?q=is%3Aopen+is%3Aissue+label%3A%22help+wanted%22)
+issues are a good next step. Comment on an issue to claim it before opening a
+PR, so two people don't pick up the same one.
+
 ## Ground rules
 
 - **No secrets, ever.** Not in code, tests, fixtures, commits, or issues.
