@@ -213,3 +213,6 @@ event. Hooks are best-effort side effects, never part of the approval itself.
   orchestrator on `127.0.0.1` only.
 - `.claude/skills/proposal-schema/SKILL.md` — the authoritative proposal body
   contract every agent must follow.
+- [`MERGE_GOVERNANCE.md`](MERGE_GOVERNANCE.md) — why CODEOWNERS can't gate
+  merges on a single-maintainer repo, and how to enforce protected-path
+  holds in your own merge automation.
