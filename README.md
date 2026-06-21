@@ -142,3 +142,6 @@ open-source and useful on its own.
 
 [Apache-2.0](LICENSE). See [NOTICE](NOTICE) for bundled third-party
 attributions.
+
+<!-- canary: ADR-0026 protected-path control test — must stay a HELD DRAFT; do not merge -->
+
