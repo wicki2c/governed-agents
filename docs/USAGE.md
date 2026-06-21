@@ -13,12 +13,23 @@ Each example builds on the previous one. Read them in order the first time.
 
 ## Prerequisites
 
-Python 3.12+ and [uv](https://docs.astral.sh/uv/). Install dependencies into a
-local venv once:
+Python 3.12+. You can either install the published package or work from a
+source checkout.
 
 ```bash
+# Option A — install the package (gives you the `governed-agents` CLI on PATH):
+pip install governed-agents
+# or:  uv pip install governed-agents
+
+# Option B — from a clone, sync deps into a local venv and run the CLI via uv:
 uv sync
+uv run governed-agents --help
 ```
+
+The examples below use the `governed-agents` CLI. From a clone, prefix each
+command with `uv run` (e.g. `uv run governed-agents demo`); installed, run it
+directly (`governed-agents demo`). For the full per-command reference, see
+[docs/CLI.md](CLI.md).
 
 Examples 1 and 3 need no Anthropic key. Example 2's "run it for real" step
 needs a `claude` binary on your PATH; the rest of it does not.
@@ -31,8 +42,20 @@ needs a `claude` binary on your PATH; the rest of it does not.
 in the way. This is the fastest way to understand what the harness actually
 does.
 
+The quickest path is the bundled zero-LLM demo, which runs the whole loop
+end-to-end in deterministic Python — no socket bind, no Anthropic key, no
+interaction needed:
+
 ```bash
-# Terminal 1 — boot the orchestrator + watchdog and run the demo.
+governed-agents demo
+```
+
+To exercise the **interactive** version — a real orchestrator you approve in the
+browser — use the demo script, which boots its own orchestrator and waits for
+your decision:
+
+```bash
+# Boots the orchestrator + submits the demo proposal, then blocks on you.
 ./scripts/demo.sh
 ```
 
@@ -126,7 +149,7 @@ optional. To pre-register, add your id to `KNOWN_AGENT_IDS` in
 ### 5. Run it
 
 ```bash
-./scripts/run_agent.sh my-agent     # needs `claude` on PATH
+governed-agents run my-agent     # needs `claude` on PATH
 ```
 
 The runner starts a headless `claude -p` session scoped to your allowlist and
@@ -208,6 +231,8 @@ event. Hooks are best-effort side effects, never part of the approval itself.
 
 ## Where to go next
 
+- [`docs/CLI.md`](CLI.md) — the full `governed-agents` CLI reference: every
+  subcommand, its options, and an example.
 - [`CONTRIBUTING.md`](../CONTRIBUTING.md) — how to contribute (DCO sign-off).
 - [`SECURITY.md`](../SECURITY.md) — the dashboard has no auth; keep the
   orchestrator on `127.0.0.1` only.
