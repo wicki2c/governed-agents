@@ -17,6 +17,7 @@ Covers:
 
 from __future__ import annotations
 
+import functools
 import sys
 from datetime import UTC, datetime
 
@@ -229,3 +230,38 @@ def test_example_hook_registers_and_dispatches():
     decision_hooks.register("publish_content", example_publish_hook)
     proposal = _proposal("publish_content", proposal_id="ex-1")
     assert decision_hooks.dispatch(proposal, None) == {"published": "ex-1"}
+
+
+# ---------------------------------------------------------------------------
+# Edge cases that complete branch coverage of the registry contract
+# ---------------------------------------------------------------------------
+
+
+def test_register_rejects_hook_without_resolvable_name():
+    """A callable that lacks a `__name__` (e.g. a functools.partial) can't
+    be lazily re-resolved from its module, so register() rejects it at
+    registration time and points the caller at register_callable()."""
+    partial_hook = functools.partial(_sample_hook)
+    assert getattr(partial_hook, "__name__", None) is None
+    with pytest.raises(ValueError, match="register_callable"):
+        decision_hooks.register("test_partial_action", partial_hook)
+
+
+def test_register_callable_rejects_empty_action_type():
+    """register_callable() applies the same non-empty action_type guard as
+    register() — the validation must be symmetric across both paths."""
+    with pytest.raises(ValueError, match="non-empty string"):
+        decision_hooks.register_callable("", lambda p, s: {})
+
+
+def test_registered_action_types_reflects_registry():
+    """registered_action_types() returns a frozenset snapshot of the
+    currently-registered keys, across both registration paths."""
+    decision_hooks.unregister("test_snapshot_register")
+    decision_hooks.unregister("test_snapshot_callable")
+    decision_hooks.register("test_snapshot_register", _sample_hook)
+    decision_hooks.register_callable("test_snapshot_callable", lambda p, s: {})
+
+    snapshot = decision_hooks.registered_action_types()
+    assert isinstance(snapshot, frozenset)
+    assert {"test_snapshot_register", "test_snapshot_callable"} <= snapshot
