@@ -1,12 +1,17 @@
 # Governed Agents
 
+[![PyPI](https://img.shields.io/pypi/v/governed-agents)](https://pypi.org/project/governed-agents/)
+[![Python](https://img.shields.io/pypi/pyversions/governed-agents)](https://pypi.org/project/governed-agents/)
+[![License](https://img.shields.io/badge/license-Apache--2.0-blue)](LICENSE)
+
 **A governance harness for autonomous AI agents.** Budget caps, a human
 proposal-gate on every external action, an independent watchdog, and a
 complete audit trail — the controls you need before you let an agent touch
 the real world.
 
-> Status: early / experimental (v0). The core is open-source and stable
-> enough to build on; the API may still change before 1.0.
+> Status: **v0.1.0 on [PyPI](https://pypi.org/project/governed-agents/)** —
+> early. The core is stable enough to build on; the API may still change
+> before 1.0.
 
 ---
 
@@ -24,6 +29,21 @@ need answers to four questions:
 Most agent frameworks optimize for capability. This one optimizes for
 **governance** — the layer that makes autonomy safe to ship. It is small,
 dependency-light, and unopinionated about what your agents *do*.
+
+## Who this is for
+
+You, probably, if you're a solo operator or a small team handing real-world
+reach — money, publishing, email, third-party APIs — to agents built on
+Claude Code / headless `claude -p` (or anything you can wrap in a runner),
+and you want a hard human approval gate, spend caps, and an independent
+kill-switch in place before the first real action fires. Laptop-scale by
+design: one `pip install`, SQLite, localhost. No cloud control plane.
+
+If you need enterprise fleet governance — policy-as-code across many
+frameworks and languages, org-wide identity, compliance reporting — you want
+something like Microsoft's [Agent Governance Toolkit](https://opensource.microsoft.com/blog/2026/04/02/introducing-the-agent-governance-toolkit-open-source-runtime-security-for-ai-agents/)
+or an AI gateway, not this. `governed-agents` is deliberately the small,
+readable version of the idea.
 
 ## What you get
 
@@ -69,17 +89,12 @@ Requires Python 3.12+.
 pip install governed-agents
 ```
 
-> **Until the first PyPI release**, install straight from the repo — same
-> `governed-agents` CLI, same UX:
->
-> ```bash
-> pip install git+https://github.com/wicki2c/governed-agents
-> # or, from a clone:  pip install .
-> ```
->
-> Prefer [uv](https://docs.astral.sh/uv/)? `uv pip install governed-agents`
-> drops it into the current environment, or `uv add governed-agents` adds it
-> to a project.
+> On Python ≤3.11, pip will say *"no matching distribution found"* — that's
+> the 3.12 version floor talking, not a missing package.
+
+Prefer [uv](https://docs.astral.sh/uv/)? `uv pip install governed-agents`
+drops it into the current environment, or `uv add governed-agents` adds it
+to a project.
 
 Installing puts a single `governed-agents` command on your `PATH`. The fastest
 way to see what the harness does is the zero-LLM demo — **no Anthropic key, no
@@ -183,6 +198,10 @@ experiment — running live sites, payment test-mode checkouts, and
 third-party API integrations under exactly these controls. The governance
 layer is what survived and proved worth keeping; this repo is that layer,
 extracted clean.
+
+(For the record: the agents made $0. The harness is what survived. That
+tells you something true about autonomous agents in 2026 — and it's exactly
+why the gate, the caps, and the watchdog matter.)
 
 ## Roadmap
 
