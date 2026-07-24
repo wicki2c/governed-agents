@@ -9,6 +9,14 @@ proposal-gate on every external action, an independent watchdog, and a
 complete audit trail — the controls you need before you let an agent touch
 the real world.
 
+<p align="center">
+  <img src="https://raw.githubusercontent.com/wicki2c/governed-agents/main/docs/media/demo.gif"
+       alt="30-second demo: governed-agents blocks an agent's self-approval, holds the external action for a human, executes it only after approval, and prints the audit trail"
+       width="820">
+</p>
+
+<p align="center"><em>The whole loop, no LLM required: <code>pip install governed-agents && governed-agents demo</code></em></p>
+
 > Status: **v0.1.0 on [PyPI](https://pypi.org/project/governed-agents/)** —
 > early. The core is stable enough to build on; the API may still change
 > before 1.0.
@@ -44,6 +52,37 @@ frameworks and languages, org-wide identity, compliance reporting — you want
 something like Microsoft's [Agent Governance Toolkit](https://opensource.microsoft.com/blog/2026/04/02/introducing-the-agent-governance-toolkit-open-source-runtime-security-for-ai-agents/)
 or an AI gateway, not this. `governed-agents` is deliberately the small,
 readable version of the idea.
+
+## How it compares
+
+The honest version: these tools mostly live at *different layers*, and several
+compose well with this one — read the rows as scope, not score. Snapshot as of
+July 2026; [corrections welcome](https://github.com/wicki2c/governed-agents/issues).
+
+| | `governed-agents` | [LangGraph](https://github.com/langchain-ai/langgraph) | [Guardrails AI](https://github.com/guardrails-ai/guardrails) | [CrewAI](https://github.com/crewAIInc/crewAI) | [Agent Governance Toolkit](https://github.com/microsoft/agent-governance-toolkit) (Microsoft) |
+| --- | --- | --- | --- | --- | --- |
+| **Layer** | Governance harness around your agents | Agent orchestration framework | Model I/O validation | Multi-agent orchestration framework | Policy-enforcement & agent-security stack |
+| **Human approval gate on external actions** | **Yes** — server-side; a self-approval attempt is rejected and audit-flagged | Partial — [`interrupt()`](https://docs.langchain.com/oss/python/langgraph/interrupts) and [HITL middleware](https://docs.langchain.com/oss/python/langchain/middleware/built-in) are real primitives; you assemble the approval flow | No — on-fail actions are machine actions (reask / fix / filter) | Partial — OSS reviews [task output in the console](https://docs.crewai.com/en/learn/human-input-on-execution); per-call HITL is an [AMP platform feature](https://docs.crewai.com/en/enterprise/guides/human-in-the-loop) | **Yes** — `require_approval` policy action with quorum |
+| **Hard spend caps ($ and tokens)** | **Yes** — the runner records charges, not the agent; over-cap agents auto-pause | No — call-count limit middleware; LangSmith tracks cost but observes rather than enforces | No | No — rate / iteration / time knobs | Partial — cost-aware policy conditions (v4.1+) |
+| **Default-deny tool allowlist (declarative)** | **Yes** — per-agent TOML, composed into the `claude -p` permission set | Partial — allowlist-by-construction (the tools you wire in) | No | Partial — per-agent tool assignment in code | **Yes** — YAML/OPA/Cedar rules, fail-closed |
+| **Independent watchdog (separate process)** | **Yes** — pauses stuck, looping, or over-budget agents without their cooperation | No | No | No — in-process time/iteration limits | Partial — in-process reliability rules |
+| **Audit trail of decisions** | **Yes** — SQLite plus an append-only JSONL mirror that survives DB loss | Partial — replayable checkpoint history; full traces via LangSmith (SaaS) | No — OTel telemetry, not a decision log | Partial — traces in OSS; audit logs in the AMP platform | **Yes** — tamper-evident (Merkle) decision records |
+| **Install footprint** (resolved packages)¹ | 27 | 35 | 100 | 135 | 8 base / 47 full |
+| **License** | Apache-2.0 | MIT | Apache-2.0 | MIT | MIT |
+
+¹ Measured with a fresh `uv pip install <package>` on 2026-07-24; AGT's base
+install is its compliance CLI, `[full]` is its quick-start path.
+
+If you need graph orchestration, LangGraph is excellent — and `interrupt()`
+is a real approval primitive once you build the loop around it (mind the
+documented node re-execution caveat). Guardrails validates model I/O, a
+different layer that composes with this harness. CrewAI is a
+batteries-included multi-agent framework with a commercial platform behind
+it. Microsoft's toolkit is the enterprise, multi-framework take on runtime
+governance — policy engines, sandboxing, compliance mappings — and the right
+answer at fleet scale (see [Who this is for](#who-this-is-for)).
+`governed-agents` is the laptop-scale version: all five controls working
+together out of the box, small enough to read in an afternoon.
 
 ## What you get
 
@@ -90,7 +129,8 @@ pip install governed-agents
 ```
 
 > On Python ≤3.11, pip will say *"no matching distribution found"* — that's
-> the 3.12 version floor talking, not a missing package.
+> the 3.12 version floor talking, not a missing package. (Why 3.12+? See the
+> [FAQ](docs/FAQ.md#why-python-312).)
 
 Prefer [uv](https://docs.astral.sh/uv/)? `uv pip install governed-agents`
 drops it into the current environment, or `uv add governed-agents` adds it
