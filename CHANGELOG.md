@@ -9,7 +9,14 @@ versions.
 
 ## [Unreleased]
 
-_Nothing yet._
+### Added
+
+- 30-second zero-LLM demo GIF at the top of the README
+  (`docs/media/demo.gif`, recorded with vhs).
+- README "How it compares" section — LangGraph, Guardrails AI, CrewAI, and
+  Microsoft's Agent Governance Toolkit — sourced and dated.
+- `docs/FAQ.md` — the Python 3.12+ floor, running without `claude`, the
+  localhost-only dashboard, the threat model, and spend reporting.
 
 ## [0.1.0] — 2026-06-21
 
