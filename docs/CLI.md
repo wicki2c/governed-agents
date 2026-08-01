@@ -14,7 +14,7 @@ custom agent, a decision hook), read [docs/USAGE.md](USAGE.md).
 - [Synopsis](#synopsis)
 - [`init`](#init) · [`serve`](#serve) · [`watchdog`](#watchdog) ·
   [`run`](#run) · [`demo`](#demo) · [`status`](#status) ·
-  [`scoreboard`](#scoreboard)
+  [`scoreboard`](#scoreboard) · [`proposals`](#proposals)
 - [See also](#see-also)
 
 ## Install
@@ -46,6 +46,7 @@ governed-agents [--version] <command> ...
 | [`demo`](#demo) | Run the zero-LLM governance demo. |
 | [`status`](#status) | Pretty-print `/status` from a running orchestrator. |
 | [`scoreboard`](#scoreboard) | Pretty-print `/scoreboard` from a running orchestrator. |
+| [`proposals`](#proposals) | Pretty-print `/proposals` from a running orchestrator. |
 
 Global options:
 
@@ -273,6 +274,40 @@ governed-agents scoreboard [--url URL]
 
 ```bash
 governed-agents scoreboard
+```
+
+---
+
+## `proposals`
+
+Fetch and pretty-print `/proposals` from a running orchestrator — list proposals
+filtered by status.
+
+**Synopsis**
+
+```text
+governed-agents proposals [--status STATUS] [--limit LIMIT] [--url URL]
+```
+
+**Options**
+
+| Option | Description |
+| --- | --- |
+| `--status STATUS` | Filter proposals by status (e.g. `pending`, `approved`, `rejected`, `all`). Default: `pending`. |
+| `--limit LIMIT` | Maximum number of proposals to return (1–500). Default: `100`. |
+| `--url URL` | Orchestrator base URL. Default: `http://127.0.0.1:<UVICORN_PORT>`. |
+
+**Example**
+
+```bash
+# Default: list pending proposals
+governed-agents proposals
+
+# List all proposals with custom limit:
+governed-agents proposals --status all --limit 20
+
+# Against a custom port:
+governed-agents proposals --url http://127.0.0.1:9000
 ```
 
 ---
