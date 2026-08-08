@@ -34,7 +34,7 @@ def test_help_exits_zero(capsys):
     out = capsys.readouterr().out
     assert "governed-agents" in out
     # All subcommands should be advertised in the help text.
-    for cmd in ("init", "serve", "watchdog", "run", "demo", "status", "scoreboard"):
+    for cmd in ("init", "serve", "watchdog", "run", "demo", "status", "scoreboard", "proposals"):
         assert cmd in out
 
 
@@ -61,9 +61,9 @@ def test_version_prints_package_version(capsys):
 
 @pytest.mark.parametrize(
     "command",
-    ["init", "serve", "watchdog", "run", "demo", "status", "scoreboard"],
+    ["init", "serve", "watchdog", "run", "demo", "status", "scoreboard", "proposals"],
 )
-def test_all_seven_subcommands_registered(command):
+def test_all_eight_subcommands_registered(command):
     """Every documented subcommand parses and binds a handler.
 
     We parse a minimal valid argv for each (``run`` needs a positional
@@ -78,7 +78,7 @@ def test_all_seven_subcommands_registered(command):
     assert callable(args.func)
 
 
-def test_exactly_seven_subcommands_registered():
+def test_exactly_eight_subcommands_registered():
     parser = cli.build_parser()
     # The single subparsers action holds every registered subcommand.
     choices: dict = {}
@@ -96,6 +96,7 @@ def test_exactly_seven_subcommands_registered():
         "demo",
         "status",
         "scoreboard",
+        "proposals",
     }
 
 
@@ -235,7 +236,7 @@ def _patch_connect_error(monkeypatch):
     monkeypatch.setattr(httpx, "get", _boom)
 
 
-@pytest.mark.parametrize("command", ["status", "scoreboard"])
+@pytest.mark.parametrize("command", ["status", "scoreboard", "proposals"])
 def test_status_scoreboard_clean_exit_when_no_server(command, monkeypatch, capsys):
     """No traceback when the orchestrator is down — exit 1 + readable hint."""
     _patch_connect_error(monkeypatch)
@@ -315,6 +316,35 @@ def test_status_non_200_exits_one(monkeypatch, capsys):
     rc = cli.main(["status"])
     assert rc == 1
     assert "503" in capsys.readouterr().err
+
+
+def test_proposals_url_default_and_flags(monkeypatch, capsys):
+    import httpx
+
+    class _FakeResp:
+        status_code = 200
+
+        def json(self):
+            return []
+
+    seen: list[str] = []
+
+    def _fake_get(url, **_kw):
+        seen.append(url)
+        return _FakeResp()
+
+    monkeypatch.setattr(httpx, "get", _fake_get)
+
+    rc = cli.main(["proposals"])
+    assert rc == 0
+    assert "status=pending" in seen[0]
+    assert "limit=100" in seen[0]
+    assert seen[0].startswith("http://127.0.0.1:")
+    assert seen[0].endswith("/proposals?status=pending&limit=100")
+
+    rc2 = cli.main(["proposals", "--status", "all", "--limit", "20", "--url", "http://127.0.0.1:9000/"])
+    assert rc2 == 0
+    assert seen[1] == "http://127.0.0.1:9000/proposals?status=all&limit=20"
 
 
 # ---------------------------------------------------------------------------

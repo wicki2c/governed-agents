@@ -206,6 +206,21 @@ def cmd_scoreboard(args: argparse.Namespace) -> int:
     return _get_json(f"{base.rstrip('/')}/scoreboard")
 
 
+def cmd_proposals(args: argparse.Namespace) -> int:
+    """Pretty-print `<url>/proposals` from a running orchestrator."""
+    from urllib.parse import urlencode
+
+    base = args.url if args.url is not None else _default_base_url()
+    params: dict[str, str] = {}
+    if args.status:
+        params["status"] = args.status
+    if args.limit is not None:
+        params["limit"] = str(args.limit)
+
+    query_str = f"?{urlencode(params)}" if params else ""
+    return _get_json(f"{base.rstrip('/')}/proposals{query_str}")
+
+
 # ---------------------------------------------------------------------------
 # Parser
 # ---------------------------------------------------------------------------
@@ -311,6 +326,29 @@ def build_parser() -> argparse.ArgumentParser:
         help="orchestrator base URL (default: http://127.0.0.1:<UVICORN_PORT>)",
     )
     p_scoreboard.set_defaults(func=cmd_scoreboard)
+
+    p_proposals = sub.add_parser(
+        "proposals",
+        help="GET /proposals from a running orchestrator",
+        description="Fetch and pretty-print /proposals from a running orchestrator.",
+    )
+    p_proposals.add_argument(
+        "--status",
+        default="pending",
+        help="filter proposals by status (default: pending)",
+    )
+    p_proposals.add_argument(
+        "--limit",
+        type=int,
+        default=100,
+        help="maximum number of proposals to return (default: 100)",
+    )
+    p_proposals.add_argument(
+        "--url",
+        default=None,
+        help="orchestrator base URL (default: http://127.0.0.1:<UVICORN_PORT>)",
+    )
+    p_proposals.set_defaults(func=cmd_proposals)
 
     return parser
 
