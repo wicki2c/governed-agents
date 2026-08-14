@@ -84,6 +84,47 @@ def _get_json(url: str) -> int:
     return 0
 
 
+def _post_json(url: str, body: dict) -> int:
+    """POST `body` to `url`, print resulting proposal status, return exit code.
+
+    A refused connection (orchestrator not running) prints a clean message
+    and returns 1 rather than dumping a traceback.
+    """
+    import httpx
+
+    try:
+        resp = httpx.post(url, json=body, timeout=5.0)
+    except httpx.ConnectError:
+        print(
+            f"error: could not connect to {url} — is the orchestrator running?\n"
+            "       start it with:  governed-agents serve",
+            file=sys.stderr,
+        )
+        return 1
+    except httpx.HTTPError as exc:
+        print(f"error: request to {url} failed: {exc}", file=sys.stderr)
+        return 1
+
+    if resp.status_code != 200:
+        detail = resp.text
+        try:
+            parsed = resp.json()
+            if isinstance(parsed, dict) and "detail" in parsed:
+                detail = parsed["detail"]
+        except Exception:
+            pass
+        print(
+            f"error: {url} returned HTTP {resp.status_code}: {detail}",
+            file=sys.stderr,
+        )
+        return 1
+
+    data = resp.json()
+    status = data.get("status", "unknown").upper()
+    print(f"status: {status}")
+    return 0
+
+
 # ---------------------------------------------------------------------------
 # Subcommand handlers
 # ---------------------------------------------------------------------------
@@ -206,6 +247,19 @@ def cmd_scoreboard(args: argparse.Namespace) -> int:
     return _get_json(f"{base.rstrip('/')}/scoreboard")
 
 
+def cmd_decide(args: argparse.Namespace) -> int:
+    """Approve or reject a proposal from the terminal."""
+    base = args.url if args.url is not None else _default_base_url()
+    decision = "approve" if args.approve else "reject"
+    body = {
+        "decision": decision,
+        "final": args.final,
+        "note": args.note or "",
+    }
+    url = f"{base.rstrip('/')}/proposals/{args.proposal_id}/decision"
+    return _post_json(url, body)
+
+
 # ---------------------------------------------------------------------------
 # Parser
 # ---------------------------------------------------------------------------
@@ -311,6 +365,41 @@ def build_parser() -> argparse.ArgumentParser:
         help="orchestrator base URL (default: http://127.0.0.1:<UVICORN_PORT>)",
     )
     p_scoreboard.set_defaults(func=cmd_scoreboard)
+
+    p_decide = sub.add_parser(
+        "decide",
+        help="approve or reject a proposal",
+        description="Approve or reject a pending proposal from the terminal.",
+    )
+    p_decide.add_argument("proposal_id", help="proposal ID to decide")
+    g_decide = p_decide.add_mutually_exclusive_group(required=True)
+    g_decide.add_argument(
+        "--approve",
+        action="store_true",
+        help="approve the proposal",
+    )
+    g_decide.add_argument(
+        "--reject",
+        action="store_true",
+        help="reject the proposal",
+    )
+    p_decide.add_argument(
+        "--note",
+        default=None,
+        help="optional reason or feedback note",
+    )
+    p_decide.add_argument(
+        "--final",
+        action=argparse.BooleanOptionalAction,
+        default=True,
+        help="mark decision as final (default: true)",
+    )
+    p_decide.add_argument(
+        "--url",
+        default=None,
+        help="orchestrator base URL (default: http://127.0.0.1:<UVICORN_PORT>)",
+    )
+    p_decide.set_defaults(func=cmd_decide)
 
     return parser
 
