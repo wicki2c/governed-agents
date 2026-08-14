@@ -34,7 +34,7 @@ def test_help_exits_zero(capsys):
     out = capsys.readouterr().out
     assert "governed-agents" in out
     # All subcommands should be advertised in the help text.
-    for cmd in ("init", "serve", "watchdog", "run", "demo", "status", "scoreboard"):
+    for cmd in ("init", "serve", "watchdog", "run", "demo", "status", "scoreboard", "decide"):
         assert cmd in out
 
 
@@ -61,24 +61,28 @@ def test_version_prints_package_version(capsys):
 
 @pytest.mark.parametrize(
     "command",
-    ["init", "serve", "watchdog", "run", "demo", "status", "scoreboard"],
+    ["init", "serve", "watchdog", "run", "demo", "status", "scoreboard", "decide"],
 )
-def test_all_seven_subcommands_registered(command):
+def test_all_eight_subcommands_registered(command):
     """Every documented subcommand parses and binds a handler.
 
     We parse a minimal valid argv for each (``run`` needs a positional
-    ``agent``) and assert the parser attached a callable ``func`` — i.e. the
-    subcommand is reachable — without invoking the handler.
+    ``agent``; ``decide`` needs a positional ``proposal_id`` and
+    ``--approve``/``--reject``) and assert the parser attached a callable
+    ``func`` — i.e. the subcommand is reachable — without invoking the
+    handler.
     """
     parser = cli.build_parser()
     argv = [command]
     if command == "run":
         argv.append("noop")
+    elif command == "decide":
+        argv.extend(["prop-1", "--approve"])
     args = parser.parse_args(argv)
     assert callable(args.func)
 
 
-def test_exactly_seven_subcommands_registered():
+def test_exactly_eight_subcommands_registered():
     parser = cli.build_parser()
     # The single subparsers action holds every registered subcommand.
     choices: dict = {}
@@ -96,6 +100,7 @@ def test_exactly_seven_subcommands_registered():
         "demo",
         "status",
         "scoreboard",
+        "decide",
     }
 
 
@@ -439,3 +444,139 @@ def test_init_default_dir_is_current_dir():
     parser = cli.build_parser()
     args = parser.parse_args(["init"])
     assert args.dir == "."
+
+
+# ---------------------------------------------------------------------------
+# 8. decide — approve / reject proposals from the terminal
+# ---------------------------------------------------------------------------
+
+
+def test_decide_approve_default_flags(monkeypatch, capsys):
+    import httpx
+
+    captured: dict = {}
+
+    class _FakeResp:
+        status_code = 200
+
+        def json(self):
+            return {"proposal_id": "prop-123", "status": "approved"}
+
+    def _fake_post(url, json=None, **_kw):
+        captured["url"] = url
+        captured["body"] = json
+        return _FakeResp()
+
+    monkeypatch.setattr(httpx, "post", _fake_post)
+
+    rc = cli.main(["decide", "prop-123", "--approve"])
+    assert rc == 0
+    assert captured["url"].endswith("/proposals/prop-123/decision")
+    assert captured["body"] == {
+        "decision": "approve",
+        "final": True,
+        "note": "",
+    }
+    out = capsys.readouterr().out
+    assert "status: APPROVED" in out
+
+
+def test_decide_reject_with_note_and_no_final(monkeypatch, capsys):
+    import httpx
+
+    captured: dict = {}
+
+    class _FakeResp:
+        status_code = 200
+
+        def json(self):
+            return {"proposal_id": "prop-456", "status": "rejected"}
+
+    def _fake_post(url, json=None, **_kw):
+        captured["url"] = url
+        captured["body"] = json
+        return _FakeResp()
+
+    monkeypatch.setattr(httpx, "post", _fake_post)
+
+    rc = cli.main(
+        ["decide", "prop-456", "--reject", "--note", "too risky", "--no-final"]
+    )
+    assert rc == 0
+    assert captured["url"].endswith("/proposals/prop-456/decision")
+    assert captured["body"] == {
+        "decision": "reject",
+        "final": False,
+        "note": "too risky",
+    }
+    out = capsys.readouterr().out
+    assert "status: REJECTED" in out
+
+
+def test_decide_respects_url_override(monkeypatch, capsys):
+    import httpx
+
+    captured: dict = {}
+
+    class _FakeResp:
+        status_code = 200
+
+        def json(self):
+            return {"status": "approved"}
+
+    monkeypatch.setattr(
+        httpx,
+        "post",
+        lambda url, **kw: (captured.__setitem__("url", url), _FakeResp())[1],
+    )
+
+    rc = cli.main(
+        ["decide", "prop-789", "--approve", "--url", "http://127.0.0.1:9999/"]
+    )
+    assert rc == 0
+    assert captured["url"] == "http://127.0.0.1:9999/proposals/prop-789/decision"
+
+
+def test_decide_requires_approve_or_reject_mutually_exclusive():
+    with pytest.raises(SystemExit) as exc:
+        cli.main(["decide", "prop-123"])
+    assert exc.value.code == 2
+
+    with pytest.raises(SystemExit) as exc:
+        cli.main(["decide", "prop-123", "--approve", "--reject"])
+    assert exc.value.code == 2
+
+
+def test_decide_clean_exit_when_no_server(monkeypatch, capsys):
+    import httpx
+
+    def _boom(*_a, **_k):
+        raise httpx.ConnectError("connection refused")
+
+    monkeypatch.setattr(httpx, "post", _boom)
+
+    rc = cli.main(["decide", "prop-123", "--approve"])
+    assert rc == 1
+    err = capsys.readouterr().err
+    assert "could not connect" in err
+    assert "Traceback" not in err
+
+
+def test_decide_non_200_exits_one(monkeypatch, capsys):
+    import httpx
+
+    class _FakeResp:
+        status_code = 400
+        text = "already decided"
+
+        def json(self):
+            return {"detail": "proposal 'prop-123' already decided (status=approved)"}
+
+    monkeypatch.setattr(httpx, "post", lambda url, **_kw: _FakeResp())
+
+    rc = cli.main(["decide", "prop-123", "--approve"])
+    assert rc == 1
+    err = capsys.readouterr().err
+    assert "400" in err
+    assert "already decided" in err
+

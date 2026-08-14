@@ -14,7 +14,7 @@ custom agent, a decision hook), read [docs/USAGE.md](USAGE.md).
 - [Synopsis](#synopsis)
 - [`init`](#init) · [`serve`](#serve) · [`watchdog`](#watchdog) ·
   [`run`](#run) · [`demo`](#demo) · [`status`](#status) ·
-  [`scoreboard`](#scoreboard)
+  [`scoreboard`](#scoreboard) · [`decide`](#decide)
 - [See also](#see-also)
 
 ## Install
@@ -46,6 +46,7 @@ governed-agents [--version] <command> ...
 | [`demo`](#demo) | Run the zero-LLM governance demo. |
 | [`status`](#status) | Pretty-print `/status` from a running orchestrator. |
 | [`scoreboard`](#scoreboard) | Pretty-print `/scoreboard` from a running orchestrator. |
+| [`decide`](#decide) | Approve or reject a proposal from the terminal. |
 
 Global options:
 
@@ -273,6 +274,42 @@ governed-agents scoreboard [--url URL]
 
 ```bash
 governed-agents scoreboard
+```
+
+---
+
+## `decide`
+
+Approve or reject a proposal from the terminal without opening the dashboard.
+Same localhost trust boundary as the dashboard (`127.0.0.1`).
+
+**Synopsis**
+
+```text
+governed-agents decide <proposal_id> (--approve | --reject) [--note NOTE] [--final | --no-final] [--url URL]
+```
+
+**Arguments and Options**
+
+| Option | Required | Description |
+| --- | --- | --- |
+| `proposal_id` | yes | ID of the proposal to decide (e.g. `prop-123`). |
+| `--approve` | yes* | Approve the proposal (*mutually exclusive with `--reject`). |
+| `--reject` | yes* | Reject the proposal (*mutually exclusive with `--approve`). |
+| `--note NOTE` | no | Optional reason or feedback note. |
+| `--final` / `--no-final` | no | Whether this decision is final (default: `--final`). |
+| `--url URL` | no | Orchestrator base URL. Default: `http://127.0.0.1:<UVICORN_PORT>`. |
+
+**Example**
+
+```bash
+# Approve a proposal:
+governed-agents decide prop-abc123 --approve --note "looks good"
+# status: APPROVED
+
+# Reject a proposal:
+governed-agents decide prop-xyz789 --reject --note "not like this"
+# status: REJECTED
 ```
 
 ---
