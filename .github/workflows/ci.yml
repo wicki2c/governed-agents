@@ -13,7 +13,7 @@ concurrency:
 
 jobs:
   test:
-    runs-on: ubuntu-latest
+    runs-on: [self-hosted, linux, chad-mac]
     steps:
       - uses: actions/checkout@v7
       - name: Install uv
@@ -37,7 +37,7 @@ jobs:
           uvx pip-audit -r "$RUNNER_TEMP/reqs.txt"
 
   secret-scan:
-    runs-on: ubuntu-latest
+    runs-on: [self-hosted, linux, chad-mac]
     steps:
       - uses: actions/checkout@v7
         with:
@@ -46,13 +46,14 @@ jobs:
         uses: gitleaks/gitleaks-action@v3
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          GITLEAKS_ENABLE_UPLOAD_ARTIFACT: "false"
 
   # Proves the wheel is real and installable end-to-end: build, twine-check,
   # then install the BUILT WHEEL into a clean, project-free venv and exercise
   # the console entry point plus the __file__-resolved runtime data files
   # (without them `serve` 500s at runtime and `--help` alone won't catch it).
   package:
-    runs-on: ubuntu-latest
+    runs-on: [self-hosted, linux, chad-mac]
     steps:
       - uses: actions/checkout@v7
       - name: Install uv

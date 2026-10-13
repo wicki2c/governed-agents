@@ -4,7 +4,7 @@ on:
     types: [published]
 jobs:
   pypi:
-    runs-on: ubuntu-latest
+    runs-on: [self-hosted, linux, chad-mac]
     environment: pypi          # MUST match the PyPI pending-publisher config
     permissions:
       id-token: write
