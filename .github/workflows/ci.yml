@@ -46,6 +46,7 @@ jobs:
         uses: gitleaks/gitleaks-action@v3
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          GITLEAKS_ENABLE_UPLOAD_ARTIFACT: "false"
 
   # Proves the wheel is real and installable end-to-end: build, twine-check,
   # then install the BUILT WHEEL into a clean, project-free venv and exercise
